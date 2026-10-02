@@ -1,609 +1,182 @@
-import { Box, Button, IconButton, Typography, useTheme } from "@mui/material";
+import React, { useEffect, useState } from "react";
+import { Box, Typography, Grid, Card, CardActionArea, useTheme } from "@mui/material";
 import { tokens } from "../../theme";
-import Header from "../../components/Header";
 import ReactPlayer from "react-player";
-import screenfull from "screenfull";
-import ControlIcons from "../../components/ControlIcons";
-import axios from "axios";
-import Container from "@mui/material/Container";
-import PieChart from "../../components/PieChart";
-import CameraChart from "../../components/CameraChart";
-import CameraCount from "../cameradirectory/cameracount";
-import Totalbuildings from "../buildingdirectory/buildingcount";
-import Settings from "./settings";
-import LineChart from "../../components/LineChart";
-import BarChart from "../../components/BarChart";
-import RecentAlerts from "../../components/RecentAlerts";
-import "./video.css";
-import "./Player.css";
-import { useEffect, useState, useRef } from "react";
-
-const format = (seconds) => {
-  if (isNaN(seconds)) {
-    return "00:00";
-  }
-
-  const date = new Date(seconds * 1000);
-  const hh = date.getUTCHours();
-  const mm = date.getUTCMinutes();
-  const ss = date.getUTCSeconds().toString().padStart(2, "0");
-
-  if (hh) {
-    return `${hh}:${mm.toString().padStart(2, "0")}:${ss}`;
-  } else {
-    return `${mm}:${ss}`;
-  }
-};
+import { useNavigate } from "react-router-dom";
+import { bmsDataService } from "../../services/bmsDataService";
 
 const Dashboard = () => {
   const theme = useTheme();
-
-  const [showTextDisplayOne, setShowTextDisplayOne] = useState(false);
-  const [showTextDisplayTwo, setShowTextDisplayTwo] = useState(false);
-  const [showTextDisplayThree, setShowTextDisplayThree] = useState(false);
-  const [showTextDisplayFour, setShowTextDisplayFour] = useState(false);
-  const [dashboardFeed, setDashboardFeed] = useState([]);
   const colors = tokens(theme.palette.mode);
-  const mockTransactions = [
-    {
-      building: "Clark Building",
-      camera: "Camera region 2",
-      date: "2023-03-01",
-      alert_type: "Arson",
-    },
-    {
-      building: "Campus Village Building",
-      camera: "Camera region 4",
-      date: "2023-02-24",
-      alert_type: "Dumping",
-    },
-    {
-      building: "Engineering Building",
-      camera: "First floor south wing",
-      date: "2023-02-22",
-      alert_type: "Dumping",
-    },
-    {
-      building: "Student Union",
-      camera: "Second floor",
-      date: "2023-01-16",
-      alert_type: "Arson",
-    },
-  ];
-  const [playerstate, setPlayerState] = useState({
-    playing: true,
-    muted: true,
-    volume: 0.5,
-    playerbackRate: 1.0,
-    played: 0,
-    seeking: false,
-  });
-
-  //Destructure State in other to get the values in it
-  const { playing, muted, volume, playerbackRate, played, seeking } =
-    playerstate;
-  const playerRef = useRef(null);
-  const playerDivRef = useRef(null);
-
-  //This function handles play and pause onchange button
-  const handlePlayAndPause = () => {
-    setPlayerState({ ...playerstate, playing: !playerstate.playing });
-  };
-
-  const handleMuting = () => {
-    setPlayerState({ ...playerstate, muted: !playerstate.muted });
-  };
-
-  const handleRewind = () => {
-    playerRef.current.seekTo(playerRef.current.getCurrentTime() - 10);
-  };
-
-  const handleFastForward = () => {
-    playerRef.current.seekTo(playerRef.current.getCurrentTime() + 30);
-  };
-
-  const handleVolumeChange = (e, newValue) => {
-    setPlayerState({
-      ...playerstate,
-      volume: parseFloat(newValue / 100),
-      muted: newValue === 0 ? true : false,
-    });
-  };
-
-  const handleVolumeSeek = (e, newValue) => {
-    setPlayerState({
-      ...playerstate,
-      volume: parseFloat(newValue / 100),
-      muted: newValue === 0 ? true : false,
-    });
-  };
-
-  const handlePlayerRate = (rate) => {
-    setPlayerState({ ...playerstate, playerbackRate: rate });
-  };
-
-  const handleFullScreenMode = () => {
-    screenfull.toggle(playerDivRef.current);
-  };
-
-  const handlePlayerProgress = (state) => {
-    //console.log("onProgress", state);
-    if (!playerstate.seeking) {
-      setPlayerState({ ...playerstate, ...state });
-    }
-    //console.log("afterProgress", state);
-  };
-
-  const handlePlayerSeek = (e, newValue) => {
-    setPlayerState({ ...playerstate, played: parseFloat(newValue / 100) });
-    playerRef.current.seekTo(parseFloat(newValue / 100));
-    // console.log(played)
-  };
-
-  const handlePlayerMouseSeekDown = (e) => {
-    setPlayerState({ ...playerstate, seeking: true });
-  };
-
-  const handlePlayerMouseSeekUp = (e, newValue) => {
-    setPlayerState({ ...playerstate, seeking: false });
-    playerRef.current.seekTo(newValue / 100);
-  };
-
-  const currentPlayerTime = playerRef.current
-    ? playerRef.current.getCurrentTime()
-    : "00:00";
-  const movieDuration = playerRef.current
-    ? playerRef.current.getDuration()
-    : "00:00";
-  const playedTime = format(currentPlayerTime);
-  const fullMovieTime = format(movieDuration);
-
-  function handleMouseEnterDisplayOne() {
-    setShowTextDisplayOne(true);
-  }
-
-  function handleMouseLeaveDisplayOne() {
-    setShowTextDisplayOne(false);
-  }
-
-  function handleMouseEnterDisplayTwo() {
-    setShowTextDisplayTwo(true);
-  }
-
-  function handleMouseLeaveDisplayTwo() {
-    setShowTextDisplayTwo(false);
-  }
-
-  function handleMouseEnterDisplayThree() {
-    setShowTextDisplayThree(true);
-  }
-
-  function handleMouseLeaveDisplayThree() {
-    setShowTextDisplayThree(false);
-  }
-
-  function handleMouseEnterDisplayFour() {
-    setShowTextDisplayFour(true);
-  }
-
-  function handleMouseLeaveDisplayFour() {
-    setShowTextDisplayFour(false);
-  }
+  const navigate = useNavigate();
+  const [rooms, setRooms] = useState([]);
 
   useEffect(() => {
-    getDashboardFeedData();
+    async function loadData() {
+      const roomData = await bmsDataService.getRooms();
+      setRooms(roomData);
+    }
+    loadData();
   }, []);
 
-  const getDashboardFeedData = async () => {
-    const response = await axios.get(
-      "http://localhost:3002/v1/api/dashboard-feed"
-    );
-    setDashboardFeed(response.data);
-
-    //console.log("DATA: ", response.data);
+  const getHvacBadgeStyle = (state) => {
+    if (state === "ON") return { bg: colors.greenAccent[600], text: "#fff", label: "HVAC: ON" };
+    if (state === "DELAY_TIMER") return { bg: "#f2b01e", text: "#000", label: "HVAC: DELAY" };
+    return { bg: colors.primary[500], text: colors.grey[300], label: "HVAC: OFF" };
   };
 
-  //console.log("CHECK CAMERA ID", dashboardFeed[0]);
   return (
-    <Box m="20px">
-      {/* HEADER */}
-      <Box display="flex" justifyContent="space-between" alignItems="center">
-        <Header title="DASHBOARD" subtitle="Welcome to your dashboard" />
+    <Box p={2.5}>
+      {/* VMS TITLE & STATUS HEADER */}
+      <Box display="flex" justifyContent="space-between" alignItems="center" mb={2}>
+        <Box>
+          <Typography variant="h4" fontWeight="bold" color={colors.grey[100]}>
+            LIVE ROOM MONITOR
+          </Typography>
+          <Typography variant="body2" color={colors.grey[300]}>
+            Click any camera tile to open Room Inspector & historical logs
+          </Typography>
+        </Box>
       </Box>
 
-      <Box
-        display="grid"
-        gridTemplateColumns="repeat(12, 1fr)"
-        gridAutoRows="140px"
-        gap="10px"
-      >
-        <Box
-          className="player-container"
-          gridColumn="span 3"
-          backgroundColor={colors.primary[400]}
-          display="flex"
-          alignItems="center"
-          justifyContent="center"
-          onMouseEnter={handleMouseEnterDisplayOne}
-          onMouseLeave={handleMouseLeaveDisplayOne}
-        >
-          <ReactPlayer
-            width={"100%"}
-            height="100%"
-            ref={playerRef}
-            //url="https://static.videezy.com/system/resources/previews/000/004/298/original/22.mp4"
-            url={
-              dashboardFeed[0] !== undefined
-                ? dashboardFeed[0]["feed_url"]
-                : "https://static.videezy.com/system/resources/previews/000/041/016/original/alb_tvn0411_1080p.mp4"
-            }
-            playing={playing}
-            volume={volume}
-            playbackRate={playerbackRate}
-            onProgress={handlePlayerProgress}
-            pip={false}
-            controls
-            loop
-            muted={muted}
-            onError={() => console.log("onError callback")}
-          />
-          {showTextDisplayOne && (
-            <div className="text-overlay">
-              <Typography
-                variant="h5"
-                fontWeight="600"
-                color={colors.grey[100]}
-              >
-                {dashboardFeed[0] !== undefined
-                  ? dashboardFeed[0]["building_name"] +
-                    " - " +
-                    dashboardFeed[0]["camera_loc"]
-                  : "No data to display"}
-              </Typography>
-            </div>
-          )}
-        </Box>
-        <Box
-          className="player-container"
-          gridColumn="span 3"
-          backgroundColor={colors.primary[400]}
-          display="flex"
-          alignItems="center"
-          justifyContent="center"
-          onMouseEnter={handleMouseEnterDisplayTwo}
-          onMouseLeave={handleMouseLeaveDisplayTwo}
-        >
-          <ReactPlayer
-            width={"100%"}
-            height="100%"
-            ref={playerRef}
-            //url="https://static.videezy.com/system/resources/previews/000/004/298/original/22.mp4"
-            url={
-              dashboardFeed[1] !== undefined
-                ? dashboardFeed[1]["feed_url"]
-                : "https://static.videezy.com/system/resources/previews/000/041/016/original/alb_tvn0411_1080p.mp4"
-            }
-            playing={playing}
-            volume={volume}
-            playbackRate={playerbackRate}
-            onProgress={handlePlayerProgress}
-            controls
-            loop
-            muted={muted}
-            onError={() => console.log("onError callback")}
-          />
-          {showTextDisplayTwo && (
-            <div className="text-overlay">
-              <Typography
-                variant="h5"
-                fontWeight="600"
-                color={colors.greenAccent[100]}
-              >
-                {dashboardFeed[1] !== undefined
-                  ? dashboardFeed[1]["building_name"] +
-                    " - " +
-                    dashboardFeed[1]["camera_loc"]
-                  : "No data to display"}
-              </Typography>
-            </div>
-          )}
-        </Box>
-        <Box
-          className="player-container"
-          gridColumn="span 3"
-          backgroundColor={colors.primary[400]}
-          display="flex"
-          alignItems="center"
-          justifyContent="center"
-          onMouseEnter={handleMouseEnterDisplayThree}
-          onMouseLeave={handleMouseLeaveDisplayThree}
-        >
-          <ReactPlayer
-            width={"100%"}
-            height="100%"
-            ref={playerRef}
-            //url="https://static.videezy.com/system/resources/previews/000/020/764/original/P1033645.mp4"
-            //url="https://static.videezy.com/system/resources/previews/000/000/402/original/chinatown.mp4"
-            //url="https://media.istockphoto.com/id/1289002194/video/cctv-camera-view-corporate-business-office.mp4?s=mp4-640x640-is&k=20&c=0vq9QxaruoGV-Xmmmua0XhMYPqTyYf1WtPL7t3gqE6U="
-            //url="https://media.istockphoto.com/id/984638344/video/hilo-island-of-hawaii.mp4?s=mp4-640x640-is&k=20&c=D6oQsvsiEKc12ELGVaUVe8aRaj-wXxYAYL03Kqo2KeM="
-            url={
-              dashboardFeed[2] !== undefined
-                ? dashboardFeed[2]["feed_url"]
-                : "https://static.videezy.com/system/resources/previews/000/041/016/original/alb_tvn0411_1080p.mp4"
-            }
-            playing={playing}
-            volume={volume}
-            playbackRate={playerbackRate}
-            onProgress={handlePlayerProgress}
-            controls
-            loop
-            muted={muted}
-            onError={() => console.log("onError callback")}
-          />
-          {showTextDisplayThree && (
-            <div className="text-overlay">
-              <Typography
-                variant="h5"
-                fontWeight="600"
-                color={colors.greenAccent[100]}
-              >
-                {dashboardFeed[2] !== undefined
-                  ? dashboardFeed[2]["building_name"] +
-                    " - " +
-                    dashboardFeed[2]["camera_loc"]
-                  : "No data to display"}
-              </Typography>
-            </div>
-          )}
-        </Box>
-        <Box
-          className="player-container"
-          gridColumn="span 3"
-          backgroundColor={colors.primary[400]}
-          display="flex"
-          alignItems="center"
-          justifyContent="center"
-          onMouseEnter={handleMouseEnterDisplayFour}
-          onMouseLeave={handleMouseLeaveDisplayFour}
-        >
-          <ReactPlayer
-            width={"100%"}
-            height="100%"
-            ref={playerRef}
-            //url="https://static.videezy.com/system/resources/previews/000/005/555/original/Times_Square_Wide.mp4"
-            url={
-              dashboardFeed[3] !== undefined
-                ? dashboardFeed[3]["feed_url"]
-                : "https://static.videezy.com/system/resources/previews/000/041/016/original/alb_tvn0411_1080p.mp4"
-            }
-            playing={playing}
-            volume={volume}
-            playbackRate={playerbackRate}
-            onProgress={handlePlayerProgress}
-            controls
-            loop
-            muted={muted}
-            onError={() => console.log("onError callback")}
-          />
-          {showTextDisplayFour && (
-            <div className="text-overlay">
-              <Typography
-                variant="h5"
-                fontWeight="600"
-                color={colors.greenAccent[100]}
-              >
-                {dashboardFeed[3] !== undefined
-                  ? dashboardFeed[3]["building_name"] +
-                    " - " +
-                    dashboardFeed[3]["camera_loc"]
-                  : "No data to display"}
-              </Typography>
-            </div>
-          )}
-        </Box>
-        <Box
-          display="inherit"
-          //gridColumn="span 2"
-          gridColumn="span 4"
-          gridRow="span 2"
-          //justifyContent="space-between"
-          justifyContent="center"
-          alignItems="center"
-          backgroundColor={colors.primary[400]}
-          colors={colors.grey[100]}
-          p="15px"
-        >
-          <Typography color={colors.grey[100]} variant="h3" fontWeight="600">
-            Camera Count
-          </Typography>
-          <Box
-            pl="44px"
-            alignItems="center"
-            backgroundColor={colors.primary[400]}
-          >
-            <CameraCount />
-          </Box>
-        </Box>
-        <Box
-          display="inherit"
-          //gridColumn="span 2"
-          gridColumn="span 4"
-          gridRow="span 2"
-          //justifyContent="space-between"
-          justifyContent="center"
-          alignItems="center"
-          backgroundColor={colors.primary[400]}
-          colors={colors.grey[100]}
-          p="15px"
-        >
-          <Typography color={colors.grey[100]} variant="h3" fontWeight="600">
-            Building Count
-          </Typography>
-          <Box
-            pl="44px"
-            alignItems="center"
-            backgroundColor={colors.primary[400]}
-          >
-            <Totalbuildings />
-          </Box>
-        </Box>
+      {/* VMS ROOM TILES GRID */}
+      <Grid container spacing={2.5}>
+        {rooms.map((room) => {
+          const hvacStyle = getHvacBadgeStyle(room.hvacState);
+          const isOccupied = room.occupancyState === "OCCUPIED" || room.estimatedCount > 0;
 
-        <Box
-          gridColumn="span 4"
-          gridRow="span 2"
-          backgroundColor={colors.primary[400]}
-        >
-          <Box
-            mt="15px"
-            p="0 30px 0 30px"
-            display="flex"
-            justifyContent="space-between"
-            alignItems="center"
-          >
-            <Box>
-              <Typography
-                variant="h5"
-                fontWeight="600"
-                color={colors.grey[100]}
+          return (
+            <Grid item xs={12} sm={6} md={6} lg={6} key={room.id}>
+              <Card
+                sx={{
+                  backgroundColor: colors.primary[400],
+                  border: `1px solid ${room.hvacState === "ON" ? colors.greenAccent[500] : room.hvacState === "DELAY_TIMER" ? "#f2b01e" : colors.primary[500]}`,
+                  borderRadius: "4px",
+                  transition: "transform 0.15s ease-in-out, box-shadow 0.15s ease-in-out",
+                  "&:hover": {
+                    transform: "translateY(-2px)",
+                    boxShadow: `0 4px 12px rgba(0, 0, 0, 0.4)`,
+                  },
+                }}
               >
-                Camera Status
-              </Typography>
-            </Box>
-          </Box>
-          <Box height="255px" m="-20px 0 0 0">
-            <CameraChart isDashboard={true} />
-          </Box>
-        </Box>
-        <Box
-          gridColumn="span 8"
-          gridRow="span 2"
-          backgroundColor={colors.primary[400]}
-        >
-          <Box
-            mt="15px"
-            p="0 30px 0 30px"
-            display="flex"
-            justifyContent="space-between"
-            alignItems="center"
-          >
-            <Box>
-              <Typography
-                variant="h5"
-                fontWeight="600"
-                color={colors.grey[100]}
-              >
-                Alerts Generated
-              </Typography>
-            </Box>
-          </Box>
-          <Box height="250px" m="-20px 0 0 0">
-            <LineChart isDashboard={true} />
-          </Box>
-        </Box>
-        <Box
-          gridColumn="span 4"
-          gridRow="span 2"
-          backgroundColor={colors.primary[400]}
-        >
-          <Box
-            mt="15px"
-            p="0 30px 0 30px"
-            display="flex"
-            justifyContent="space-between"
-            alignItems="center"
-          >
-            <Box>
-              <Typography
-                variant="h5"
-                fontWeight="600"
-                color={colors.grey[100]}
-              >
-                Users
-              </Typography>
-            </Box>
-          </Box>
-          <Box height="255px" m="-20px 0 0 0">
-            <PieChart isDashboard={true} />
-          </Box>
-        </Box>
-        <Box
-          gridColumn="span 8"
-          gridRow="span 2"
-          backgroundColor={colors.primary[400]}
-        >
-          <Box
-            mt="15px"
-            p="0 30px 0 30px"
-            display="flex"
-            justifyContent="space-between"
-            alignItems="center"
-          >
-            <Box>
-              <Typography
-                variant="h5"
-                fontWeight="600"
-                color={colors.grey[100]}
-              >
-                Alerts by buildings
-              </Typography>
-            </Box>
-          </Box>
-          <Box height="300px" m="-20px 0 0 0">
-            <BarChart isDashboard={true} />
-          </Box>
-        </Box>
-        <RecentAlerts />
-        {/* <Box
-          gridColumn="span 4"
-          gridRow="span 2"
-          backgroundColor={colors.primary[400]}
-          overflow="auto"
-        >
-          <Box
-            display="flex"
-            justifyContent="space-between"
-            alignItems="center"
-            borderBottom={`4px solid ${colors.primary[500]}`}
-            colors={colors.grey[100]}
-            p="15px"
-          >
-            <Typography color={colors.grey[100]} variant="h5" fontWeight="600">
-              Recent Alerts
-            </Typography>
-          </Box>
-          {mockTransactions.map((transaction, i) => (
-            <Box
-              key={`${transaction.building}-${i}`}
-              display="flex"
-              justifyContent="space-between"
-              alignItems="center"
-              borderBottom={`4px solid ${colors.primary[500]}`}
-              p="15px"
-            >
-              <Box>
-                <Typography
-                  color={colors.greenAccent[500]}
-                  variant="h5"
-                  fontWeight="600"
-                >
-                  {transaction.building}
-                </Typography>
-                <Typography color={colors.grey[100]}>
-                  {transaction.camera}
-                </Typography>
-              </Box>
-              <Box color={colors.grey[100]}>{transaction.date}</Box>
-              <Box
-                backgroundColor={colors.redAccent[800]}
-                p="5px 10px"
-                borderRadius="4px"
-              >
-                {transaction.alert_type}
-              </Box>
-            </Box>
-          ))}
-        </Box> */}
-      </Box>
+                <CardActionArea onClick={() => navigate(`/room/${room.id}`)}>
+                  {/* ROOM TILE HEADER */}
+                  <Box
+                    display="flex"
+                    justifyContent="space-between"
+                    alignItems="center"
+                    px={2}
+                    py={1}
+                    backgroundColor={colors.primary[500]}
+                    borderBottom={`1px solid ${colors.primary[600]}`}
+                  >
+                    <Box display="flex" alignItems="center" gap={1}>
+                      <Typography variant="h6" fontWeight="bold" color={colors.grey[100]}>
+                        {room.id.toUpperCase().replace("-", " ")}
+                      </Typography>
+                      <Typography variant="body2" color={colors.grey[300]}>
+                        — {room.name}
+                      </Typography>
+                    </Box>
+                    <Typography variant="caption" color={colors.grey[400]}>
+                      {room.floor}
+                    </Typography>
+                  </Box>
+
+                  {/* DOMINANT CAMERA FEED VIEW */}
+                  <Box sx={{ position: "relative", height: "240px", backgroundColor: "#000" }}>
+                    <ReactPlayer
+                      url={room.videoUrl}
+                      width="100%"
+                      height="100%"
+                      playing
+                      muted
+                      loop
+                      controls={false}
+                    />
+
+                    {/* TOP-LEFT OVERLAY: PERCEPTION TAG */}
+                    <Box
+                      sx={{
+                        position: "absolute",
+                        top: 10,
+                        left: 10,
+                        backgroundColor: "rgba(0, 0, 0, 0.8)",
+                        px: 1,
+                        py: 0.5,
+                        borderRadius: "3px",
+                        border: `1px solid ${colors.greenAccent[500]}`,
+                      }}
+                    >
+                      <Typography variant="caption" sx={{ color: colors.greenAccent[400], fontWeight: 700 }}>
+                        AI VISION FEED
+                      </Typography>
+                    </Box>
+
+                    {/* TOP-RIGHT OVERLAY: HVAC STATE BADGE */}
+                    <Box
+                      sx={{
+                        position: "absolute",
+                        top: 10,
+                        right: 10,
+                        backgroundColor: hvacStyle.bg,
+                        color: hvacStyle.text,
+                        px: 1.5,
+                        py: 0.5,
+                        borderRadius: "3px",
+                        fontWeight: 800,
+                        fontSize: "0.8rem",
+                        letterSpacing: 0.5,
+                      }}
+                    >
+                      {hvacStyle.label}
+                    </Box>
+                  </Box>
+
+                  {/* TILE FOOTER: AI OCCUPANCY & DECISION REASON */}
+                  <Box p={2} display="flex" flexDirection="column" gap={1}>
+                    <Box display="flex" justifyContent="space-between" alignItems="center">
+                      {/* AI OCCUPANCY */}
+                      <Box>
+                        <Typography variant="caption" color={colors.grey[400]} display="block">
+                          AI OCCUPANCY (Vision Estimate)
+                        </Typography>
+                        <Typography
+                          variant="h6"
+                          fontWeight="bold"
+                          sx={{ color: isOccupied ? colors.greenAccent[400] : colors.grey[300] }}
+                        >
+                          ~{room.estimatedCount} PEOPLE &nbsp;
+                          <span style={{ fontSize: "0.75rem", opacity: 0.8 }}>
+                            ({room.occupancyState})
+                          </span>
+                        </Typography>
+                      </Box>
+
+                      {/* DECISION REASON BANNER */}
+                      <Box
+                        textAlign="right"
+                        px={1.5}
+                        py={0.75}
+                        backgroundColor={colors.primary[500]}
+                        borderRadius="3px"
+                        borderLeft={`3px solid ${hvacStyle.bg}`}
+                      >
+                        <Typography variant="caption" color={colors.grey[400]} display="block">
+                          DECISION REASON
+                        </Typography>
+                        <Typography variant="body2" fontWeight="600" color={colors.grey[100]}>
+                          {room.decisionLogic}
+                        </Typography>
+                      </Box>
+                    </Box>
+                  </Box>
+                </CardActionArea>
+              </Card>
+            </Grid>
+          );
+        })}
+      </Grid>
     </Box>
   );
 };

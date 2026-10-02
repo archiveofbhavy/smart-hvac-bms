@@ -1,27 +1,27 @@
 import React, { useEffect, useState } from "react";
-import { Box, Typography, useTheme } from "@mui/material";
+import { Box, Typography, useTheme, Chip } from "@mui/material";
 import { tokens } from "../theme";
-
-import axios from "axios";
+import { bmsDataService } from "../services/bmsDataService";
 
 const RecentAlerts = () => {
   const theme = useTheme();
   const colors = tokens(theme.palette.mode);
-  const [recentAlerts, setRecentAlerts] = useState([]);
-
-  const getRecentAlerts = async () => {
-    const response = await axios.get(
-      "http://localhost:3002/v1/api/recent-alerts"
-    );
-    //let responsesx = response.data[0]["COUNT(*)"];
-    //console.log(response.data[0]["count_of_zeros"]);
-    console.log("RECENT ALERTS", response.data);
-    setRecentAlerts(response.data);
-  };
+  const [events, setEvents] = useState([]);
 
   useEffect(() => {
-    getRecentAlerts();
+    async function loadEvents() {
+      const data = await bmsDataService.getRecentEvents();
+      setEvents(data);
+    }
+    loadEvents();
   }, []);
+
+  const getSeverityBadgeColor = (severity) => {
+    if (severity === "info") return colors.greenAccent[600];
+    if (severity === "warning") return "#f2b01e";
+    if (severity === "error") return colors.redAccent[600];
+    return colors.primary[300];
+  };
 
   return (
     <Box
@@ -29,47 +29,59 @@ const RecentAlerts = () => {
       gridRow="span 2"
       backgroundColor={colors.primary[400]}
       overflow="auto"
+      borderRadius="4px"
     >
       <Box
         display="flex"
         justifyContent="space-between"
         alignItems="center"
         borderBottom={`4px solid ${colors.primary[500]}`}
-        colors={colors.grey[100]}
         p="15px"
       >
         <Typography color={colors.grey[100]} variant="h5" fontWeight="600">
-          Recent Alerts
+          Real-Time Operational Events
+        </Typography>
+        <Typography variant="caption" color={colors.grey[300]}>
+          Occupancy & HVAC Triggers
         </Typography>
       </Box>
-      {recentAlerts.map((transaction, i) => (
+
+      {events.map((evt) => (
         <Box
-          key={`${transaction.building_name}-${i}`}
+          key={evt.id}
           display="flex"
-          justifyContent="space-between"
-          alignItems="center"
-          borderBottom={`4px solid ${colors.primary[500]}`}
-          p="15px"
+          flexDirection="column"
+          gap={0.5}
+          borderBottom={`2px solid ${colors.primary[500]}`}
+          p="12px 15px"
         >
-          <Box>
-            <Typography
-              color={colors.greenAccent[500]}
-              variant="h5"
-              fontWeight="600"
-            >
-              {transaction.building_name}
+          <Box display="flex" justifyContent="space-between" alignItems="center">
+            <Typography color={colors.greenAccent[400]} fontWeight="600" variant="body2">
+              {evt.roomName}
             </Typography>
-            <Typography color={colors.grey[100]}>
-              {transaction.camera_loc}
+            <Typography variant="caption" color={colors.grey[400]}>
+              {evt.timestamp}
             </Typography>
           </Box>
-          <Box color={colors.grey[100]}>{transaction.event_date}</Box>
-          <Box
-            backgroundColor={colors.redAccent[800]}
-            p="5px 10px"
-            borderRadius="4px"
-          >
-            {transaction.event_type}
+
+          <Typography color={colors.grey[100]} variant="body2">
+            {evt.message}
+          </Typography>
+
+          <Box display="flex" justifyContent="space-between" alignItems="center" mt={0.5}>
+            <Typography variant="caption" color={colors.grey[300]} sx={{ fontStyle: "italic" }}>
+              ↳ {evt.hvacResponse}
+            </Typography>
+            <Chip
+              label={evt.type.replace(/_/g, " ")}
+              size="small"
+              sx={{
+                backgroundColor: getSeverityBadgeColor(evt.severity),
+                color: "#fff",
+                fontSize: "0.65rem",
+                fontWeight: 700,
+              }}
+            />
           </Box>
         </Box>
       ))}

@@ -8,165 +8,29 @@ const LineChart = ({ isCustomLineColors = false, isDashboard = false }) => {
 
   const mockLineData = [
     {
-      id: "Dumping",
+      id: "CS Computer Lab 101",
       color: tokens("dark").greenAccent[500],
       data: [
-        {
-          x: "Jan",
-          y: 2,
-        },
-        {
-          x: "Feb",
-          y: 5,
-        },
-        {
-          x: "Mar",
-          y: 3,
-        },
-        {
-          x: "Apr",
-          y: 3,
-        },
-        {
-          x: "May",
-          y: 2,
-        },
-        {
-          x: "June",
-          y: 6,
-        },
-        {
-          x: "July",
-          y: 5,
-        },
-        {
-          x: "Aug",
-          y: 2,
-        },
-        {
-          x: "Sep",
-          y: 1,
-        },
-        {
-          x: "Oct",
-          y: 6,
-        },
-        {
-          x: "Nov",
-          y: 3,
-        },
-        {
-          x: "Dec",
-          y: 4,
-        },
+        { x: "08:00", y: 0 },
+        { x: "09:00", y: 2 },
+        { x: "10:00", y: 5 },
+        { x: "11:00", y: 4 },
+        { x: "12:00", y: 1 },
+        { x: "13:00", y: 0 },
+        { x: "14:00", y: 0 },
       ],
     },
     {
-      id: "Auto Accident",
+      id: "Lecture Hall 102",
       color: tokens("dark").blueAccent[300],
       data: [
-        {
-          x: "Jan",
-          y: 3,
-        },
-        {
-          x: "Feb",
-          y: 2,
-        },
-        {
-          x: "Mar",
-          y: 5,
-        },
-        {
-          x: "Apr",
-          y: 1,
-        },
-        {
-          x: "May",
-          y: 2,
-        },
-        {
-          x: "June",
-          y: 6,
-        },
-        {
-          x: "July",
-          y: 1,
-        },
-        {
-          x: "Aug",
-          y: 2,
-        },
-        {
-          x: "Sep",
-          y: 2,
-        },
-        {
-          x: "Oct",
-          y: 4,
-        },
-        {
-          x: "Nov",
-          y: 3,
-        },
-        {
-          x: "Dec",
-          y: 1,
-        },
-      ],
-    },
-    {
-      id: "Arson",
-      color: tokens("dark").redAccent[200],
-      data: [
-        {
-          x: "Jan",
-          y: 1,
-        },
-        {
-          x: "Feb",
-          y: 3,
-        },
-        {
-          x: "Mar",
-          y: 3,
-        },
-        {
-          x: "Apr",
-          y: 2,
-        },
-        {
-          x: "May",
-          y: 4,
-        },
-        {
-          x: "June",
-          y: 5,
-        },
-        {
-          x: "July",
-          y: 5,
-        },
-        {
-          x: "Aug",
-          y: 2,
-        },
-        {
-          x: "Sep",
-          y: 1,
-        },
-        {
-          x: "Oct",
-          y: 4,
-        },
-        {
-          x: "Nov",
-          y: 3,
-        },
-        {
-          x: "Dec",
-          y: 4,
-        },
+        { x: "08:00", y: 0 },
+        { x: "09:00", y: 18 },
+        { x: "10:00", y: 16 },
+        { x: "11:00", y: 14 },
+        { x: "12:00", y: 0 },
+        { x: "13:00", y: 0 },
+        { x: "14:00", y: 0 },
       ],
     },
   ];
@@ -207,17 +71,17 @@ const LineChart = ({ isCustomLineColors = false, isDashboard = false }) => {
           },
         },
       }}
-      colors={isDashboard ? { datum: "color" } : { scheme: "nivo" }} // added
-      margin={{ top: 50, right: 110, bottom: 50, left: 60 }}
+      colors={isDashboard ? { datum: "color" } : { scheme: "nivo" }}
+      margin={{ top: 30, right: 140, bottom: 50, left: 60 }}
       xScale={{ type: "point" }}
       yScale={{
         type: "linear",
-        min: "auto",
+        min: 0,
         max: "auto",
         stacked: false,
         reverse: false,
       }}
-      yFormat=" >-.2f"
+      yFormat=" >-.0f"
       curve="catmullRom"
       axisTop={null}
       axisRight={null}
@@ -226,17 +90,17 @@ const LineChart = ({ isCustomLineColors = false, isDashboard = false }) => {
         tickSize: 0,
         tickPadding: 5,
         tickRotation: 0,
-        legend: isDashboard ? undefined : "Alerts", // added
+        legend: "Time",
         legendOffset: 36,
         legendPosition: "middle",
       }}
       axisLeft={{
         orient: "left",
-        tickValues: 5, // added
+        tickValues: 5,
         tickSize: 3,
         tickPadding: 5,
         tickRotation: 0,
-        legend: isDashboard ? undefined : "count", // added
+        legend: "People",
         legendOffset: -40,
         legendPosition: "middle",
       }}
@@ -253,11 +117,11 @@ const LineChart = ({ isCustomLineColors = false, isDashboard = false }) => {
           anchor: "bottom-right",
           direction: "column",
           justify: false,
-          translateX: 100,
+          translateX: 130,
           translateY: 0,
           itemsSpacing: 0,
           itemDirection: "left-to-right",
-          itemWidth: 80,
+          itemWidth: 120,
           itemHeight: 20,
           itemOpacity: 0.75,
           symbolSize: 12,
